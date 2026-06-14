@@ -8,11 +8,13 @@ import type {
   TRIOStudent, Activity, Meeting, TRIOEvent, EventRSVP,
   Notification, Scholarship, DashboardStats, Profile,
   ActivityType, MeetingStatus, ReportFilters, UserRole, AIInsight,
+  StudentNote, Message, StudentDocument,
 } from "./types";
 import {
   DEMO_STUDENTS, DEMO_ACTIVITIES, DEMO_MEETINGS, DEMO_EVENTS,
   DEMO_RSVPS, DEMO_NOTIFICATIONS, DEMO_SCHOLARSHIPS, DEMO_STATS,
   DEMO_PROFILES, DEMO_ACCOUNTS, DEMO_AI_INSIGHTS,
+  DEMO_STUDENT_NOTES, DEMO_MESSAGES, DEMO_DOCUMENTS,
 } from "./demo-data";
 
 // ── Local (demo) store ────────────────────────────────────────────────────────
@@ -26,6 +28,9 @@ const LOCAL_KEYS = {
   scholarships: "trio-scholarships-v1",
   profiles: "trio-profiles-v1",
   session: "trio-session-v1",
+  notes: "trio-notes-v1",
+  messages: "trio-messages-v1",
+  documents: "trio-documents-v1",
 };
 
 function read<T>(key: string, fallback: T[]): T[] {
@@ -44,6 +49,9 @@ function initDemo() {
   if (!localStorage.getItem(LOCAL_KEYS.notifications)) write(LOCAL_KEYS.notifications, DEMO_NOTIFICATIONS);
   if (!localStorage.getItem(LOCAL_KEYS.scholarships)) write(LOCAL_KEYS.scholarships, DEMO_SCHOLARSHIPS);
   if (!localStorage.getItem(LOCAL_KEYS.profiles)) write(LOCAL_KEYS.profiles, DEMO_PROFILES);
+  if (!localStorage.getItem(LOCAL_KEYS.notes)) write(LOCAL_KEYS.notes, DEMO_STUDENT_NOTES);
+  if (!localStorage.getItem(LOCAL_KEYS.messages)) write(LOCAL_KEYS.messages, DEMO_MESSAGES);
+  if (!localStorage.getItem(LOCAL_KEYS.documents)) write(LOCAL_KEYS.documents, DEMO_DOCUMENTS);
 }
 
 initDemo();
@@ -410,6 +418,55 @@ export async function getStudentActivitySummary(filters?: ReportFilters): Promis
 export function getAIInsights(): AIInsight[] {
   if (isSupabaseConfigured) return []; // Real AI layer — implement with AI SDK
   return DEMO_AI_INSIGHTS;
+}
+
+// ── Student Notes ─────────────────────────────────────────────────────────────
+export async function getStudentNotes(studentId: string): Promise<StudentNote[]> {
+  const notes = read<StudentNote>(LOCAL_KEYS.notes, DEMO_STUDENT_NOTES);
+  return notes.filter((n) => n.student_id === studentId).sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export async function createStudentNote(data: Omit<StudentNote, "id" | "created_at">): Promise<StudentNote> {
+  const note: StudentNote = { ...data, id: `note-${Date.now()}`, created_at: new Date().toISOString() };
+  const notes = read<StudentNote>(LOCAL_KEYS.notes, DEMO_STUDENT_NOTES);
+  notes.unshift(note);
+  write(LOCAL_KEYS.notes, notes);
+  return note;
+}
+
+export async function deleteStudentNote(id: string): Promise<void> {
+  write(LOCAL_KEYS.notes, read<StudentNote>(LOCAL_KEYS.notes, []).filter((n) => n.id !== id));
+}
+
+// ── Messages ──────────────────────────────────────────────────────────────────
+export async function getMessages(): Promise<Message[]> {
+  return read<Message>(LOCAL_KEYS.messages, DEMO_MESSAGES).sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export async function sendMessage(data: Omit<Message, "id" | "created_at" | "is_read">): Promise<Message> {
+  const msg: Message = { ...data, id: `msg-${Date.now()}`, is_read: false, created_at: new Date().toISOString() };
+  const msgs = read<Message>(LOCAL_KEYS.messages, DEMO_MESSAGES);
+  msgs.unshift(msg);
+  write(LOCAL_KEYS.messages, msgs);
+  return msg;
+}
+
+// ── Documents ─────────────────────────────────────────────────────────────────
+export async function getDocuments(studentId?: string): Promise<StudentDocument[]> {
+  const docs = read<StudentDocument>(LOCAL_KEYS.documents, DEMO_DOCUMENTS).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return studentId ? docs.filter((d) => d.student_id === studentId) : docs;
+}
+
+export async function createDocument(data: Omit<StudentDocument, "id" | "created_at">): Promise<StudentDocument> {
+  const doc: StudentDocument = { ...data, id: `doc-${Date.now()}`, created_at: new Date().toISOString() };
+  const docs = read<StudentDocument>(LOCAL_KEYS.documents, DEMO_DOCUMENTS);
+  docs.unshift(doc);
+  write(LOCAL_KEYS.documents, docs);
+  return doc;
+}
+
+export async function deleteDocument(id: string): Promise<void> {
+  write(LOCAL_KEYS.documents, read<StudentDocument>(LOCAL_KEYS.documents, []).filter((d) => d.id !== id));
 }
 
 // ── Reset demo data ───────────────────────────────────────────────────────────

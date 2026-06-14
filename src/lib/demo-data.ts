@@ -1,6 +1,7 @@
 import type {
   Profile, TRIOStudent, Activity, Meeting, TRIOEvent, EventRSVP,
   Notification, Scholarship, ActivityType, MeetingType, MeetingStatus, EventType, AIInsight,
+  StudentNote, Message, StudentDocument,
 } from "./types";
 
 function daysAgo(n: number): string {
@@ -225,6 +226,35 @@ export const DEMO_AI_INSIGHTS: AIInsight[] = [
   { id: "ai-003", type: "opportunity", severity: "medium", message: "8 students match criteria for new scholarship opportunities.", count: 8, action_label: "View Matches", action_path: "/reports", created_at: daysAgo(0) },
   { id: "ai-004", type: "risk", severity: "medium", message: "5 students have declining attendance trends this semester.", count: 5, action_label: "Review", action_path: "/students", created_at: daysAgo(0) },
   { id: "ai-005", type: "info", severity: "low", message: "End-of-semester grant report due in 14 days.", action_label: "Generate Report", action_path: "/reports", created_at: daysAgo(0) },
+];
+
+// ── Student Notes ─────────────────────────────────────────────────────────────
+export const DEMO_STUDENT_NOTES: StudentNote[] = [
+  ...DEMO_STUDENTS.slice(0, 15).flatMap((s, i) => [
+    { id: `note-${s.id}-1`, student_id: s.id, author_id: DEMO_ADVISORS[i % 5].id, author_name: DEMO_ADVISORS[i % 5].full_name, content: "Student met with advisor to discuss academic plan. On track for next semester. Encouraged to maintain current GPA and register for FAFSA renewal.", category: "Academic" as const, priority: (["High","Medium","Low"] as const)[i % 3], created_at: daysAgo(i * 3 + 1) },
+    { id: `note-${s.id}-2`, student_id: s.id, author_id: DEMO_ADVISORS[(i+1) % 5].id, author_name: DEMO_ADVISORS[(i+1) % 5].full_name, content: i % 2 === 0 ? "Discussed scholarship opportunities. Student is a strong candidate for CT State TRIO Scholarship." : "Follow-up needed on financial aid appeal letter. Student should contact financial aid office this week.", category: i % 2 === 0 ? "Financial" as const : "Follow-Up" as const, priority: i % 2 === 0 ? "Medium" as const : "High" as const, created_at: daysAgo(i * 2 + 5) },
+  ]),
+];
+
+// ── Messages ──────────────────────────────────────────────────────────────────
+export const DEMO_MESSAGES: Message[] = [
+  { id: "msg-001", sender_id: DEMO_ADVISORS[0].id, sender_name: DEMO_ADVISORS[0].full_name, recipient_type: "program", recipient_name: "All TRIO Students", subject: "FAFSA Renewal Reminder", body: "Dear TRIO Students,\n\nThis is a reminder that FAFSA renewal applications are due by June 30th. Please schedule an appointment with your advisor if you need assistance.\n\nBest,\nMaria Rodriguez", channel: "in_app", is_read: false, created_at: daysAgo(1) },
+  { id: "msg-002", sender_id: DEMO_DIRECTOR.id, sender_name: DEMO_DIRECTOR.full_name, recipient_type: "advisors", recipient_name: "All Advisors", subject: "Monthly Progress Report Due", body: "Please submit your monthly student progress reports by end of week. Contact me with any questions.", channel: "in_app", is_read: true, created_at: daysAgo(3) },
+  { id: "msg-003", sender_id: DEMO_ADVISORS[1].id, sender_name: DEMO_ADVISORS[1].full_name, recipient_type: "group", recipient_name: "First-Generation Students", subject: "Leadership Summit Registration Open", body: "Registration for the TRIO Leadership Summit is now open. This is a great opportunity for all first-generation students. Limited spots available.", channel: "in_app", is_read: false, created_at: daysAgo(2) },
+  { id: "msg-004", sender_id: DEMO_ADVISORS[2].id, sender_name: DEMO_ADVISORS[2].full_name, recipient_type: "student", recipient_id: DEMO_STUDENTS[0].id, recipient_name: DEMO_STUDENTS[0].full_name, subject: "Appointment Reminder", body: `Dear ${DEMO_STUDENTS[0].first_name},\n\nThis is a reminder of your upcoming advising appointment. Please come prepared with any questions about your academic plan.\n\nSee you soon,\nAngela Chen`, channel: "in_app", is_read: true, created_at: daysAgo(0) },
+  { id: "msg-005", sender_id: DEMO_ADVISORS[3].id, sender_name: DEMO_ADVISORS[3].full_name, recipient_type: "group", recipient_name: "At-Risk Students", subject: "Check-In Outreach", body: "We notice you haven't visited TRIO in a while. We're here to support you. Please schedule a meeting or drop by during office hours.", channel: "in_app", is_read: false, created_at: daysAgo(5) },
+];
+
+// ── Documents ─────────────────────────────────────────────────────────────────
+export const DEMO_DOCUMENTS: StudentDocument[] = [
+  { id: "doc-001", student_id: DEMO_STUDENTS[0].id, student_name: DEMO_STUDENTS[0].full_name, uploaded_by_id: DEMO_ADVISORS[0].id, uploaded_by_name: DEMO_ADVISORS[0].full_name, file_name: "FAFSA_2025_26_Aaliyah_Adams.pdf", file_size: "142 KB", category: "FAFSA", notes: "Completed and submitted", created_at: daysAgo(10) },
+  { id: "doc-002", student_id: DEMO_STUDENTS[0].id, student_name: DEMO_STUDENTS[0].full_name, uploaded_by_id: DEMO_ADVISORS[0].id, uploaded_by_name: DEMO_ADVISORS[0].full_name, file_name: "TRIO_Consent_Form_Signed.pdf", file_size: "89 KB", category: "Consent Form", created_at: daysAgo(45) },
+  { id: "doc-003", student_id: DEMO_STUDENTS[1].id, student_name: DEMO_STUDENTS[1].full_name, uploaded_by_id: DEMO_ADVISORS[1].id, uploaded_by_name: DEMO_ADVISORS[1].full_name, file_name: "CT_State_Scholarship_App_Ahmad_Baker.pdf", file_size: "256 KB", category: "Scholarship", notes: "Application submitted for TRIO Scholarship", created_at: daysAgo(8) },
+  { id: "doc-004", student_id: DEMO_STUDENTS[2].id, student_name: DEMO_STUDENTS[2].full_name, uploaded_by_id: DEMO_ADVISORS[2].id, uploaded_by_name: DEMO_ADVISORS[2].full_name, file_name: "Unofficial_Transcript_Brianna_Carter.pdf", file_size: "312 KB", category: "Academic", created_at: daysAgo(15) },
+  { id: "doc-005", student_id: DEMO_STUDENTS[3].id, student_name: DEMO_STUDENTS[3].full_name, uploaded_by_id: DEMO_ADVISORS[0].id, uploaded_by_name: DEMO_ADVISORS[0].full_name, file_name: "Transfer_Application_Carlos_Davis.pdf", file_size: "189 KB", category: "Academic", notes: "UConn transfer application", created_at: daysAgo(5) },
+  { id: "doc-006", student_id: DEMO_STUDENTS[4].id, student_name: DEMO_STUDENTS[4].full_name, uploaded_by_id: DEMO_ADVISORS[3].id, uploaded_by_name: DEMO_ADVISORS[3].full_name, file_name: "Financial_Aid_Appeal_Destiny_Evans.pdf", file_size: "94 KB", category: "FAFSA", notes: "Appeal submitted; awaiting response", created_at: daysAgo(12) },
+  { id: "doc-007", student_id: DEMO_STUDENTS[5].id, student_name: DEMO_STUDENTS[5].full_name, uploaded_by_id: DEMO_ADVISORS[1].id, uploaded_by_name: DEMO_ADVISORS[1].full_name, file_name: "TRIO_Program_Agreement_Emmanuel_Foster.pdf", file_size: "67 KB", category: "Program Form", created_at: daysAgo(60) },
+  { id: "doc-008", student_id: DEMO_STUDENTS[6].id, student_name: DEMO_STUDENTS[6].full_name, uploaded_by_id: DEMO_ADVISORS[2].id, uploaded_by_name: DEMO_ADVISORS[2].full_name, file_name: "FAFSA_2025_26_Fatima_Garcia.pdf", file_size: "155 KB", category: "FAFSA", created_at: daysAgo(20) },
 ];
 
 // ── Demo stats ────────────────────────────────────────────────────────────────

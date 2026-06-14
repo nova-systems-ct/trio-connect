@@ -288,3 +288,50 @@ export interface ReportFilters {
   advisor_id?: string;
   program?: string;
 }
+
+export type NoteCategory = "Academic" | "Financial" | "Personal" | "Follow-Up" | "General";
+export type NotePriority = "High" | "Medium" | "Low";
+
+export interface StudentNote {
+  id: string;
+  student_id: string;
+  author_id: string;
+  author_name: string;
+  content: string;
+  category: NoteCategory;
+  priority: NotePriority;
+  created_at: string;
+}
+
+export type MessageRecipientType = "student" | "group" | "program" | "parents" | "advisors";
+export type MessageChannel = "in_app" | "email" | "sms";
+export type MessageGroup = "first_gen" | "low_income" | "at_risk" | "all_active";
+
+export interface Message {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  recipient_type: MessageRecipientType;
+  recipient_id?: string;
+  recipient_name: string;
+  subject: string;
+  body: string;
+  channel: MessageChannel;
+  is_read: boolean;
+  created_at: string;
+}
+
+export type DocumentCategory = "FAFSA" | "Consent Form" | "Scholarship" | "Academic" | "Program Form" | "Other";
+
+export interface StudentDocument {
+  id: string;
+  student_id: string;
+  student_name?: string;
+  uploaded_by_id: string;
+  uploaded_by_name: string;
+  file_name: string;
+  file_size?: string;
+  category: DocumentCategory;
+  notes?: string;
+  created_at: string;
+}
