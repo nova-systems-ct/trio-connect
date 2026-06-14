@@ -1,0 +1,232 @@
+// Core TRIO Connect Types
+
+export type UserRole = "director" | "advisor" | "student";
+
+export type EnrollmentStatus = "active" | "inactive" | "graduated" | "transferred" | "withdrawn";
+
+export type ActivityType =
+  | "Scheduled Meeting"
+  | "Walk-In Advising"
+  | "Workshop"
+  | "Event"
+  | "Study Hall"
+  | "Scholarship Assistance"
+  | "Transfer Assistance"
+  | "Academic Coaching"
+  | "Career Coaching"
+  | "Resource Center Visit"
+  | "Computer Lab Usage"
+  | "General Office Visit"
+  | "Other";
+
+export const ACTIVITY_TYPES: ActivityType[] = [
+  "Scheduled Meeting",
+  "Walk-In Advising",
+  "Workshop",
+  "Event",
+  "Study Hall",
+  "Scholarship Assistance",
+  "Transfer Assistance",
+  "Academic Coaching",
+  "Career Coaching",
+  "Resource Center Visit",
+  "Computer Lab Usage",
+  "General Office Visit",
+  "Other",
+];
+
+export type MeetingType =
+  | "Academic Advising"
+  | "Financial Aid"
+  | "Career Planning"
+  | "Transfer Planning"
+  | "Personal Support"
+  | "Follow-Up"
+  | "Other";
+
+export const MEETING_TYPES: MeetingType[] = [
+  "Academic Advising",
+  "Financial Aid",
+  "Career Planning",
+  "Transfer Planning",
+  "Personal Support",
+  "Follow-Up",
+  "Other",
+];
+
+export type MeetingStatus =
+  | "Scheduled"
+  | "Checked In"
+  | "Completed"
+  | "No Show"
+  | "Cancelled"
+  | "Rescheduled";
+
+export type EventType =
+  | "Workshop"
+  | "College Tour"
+  | "Financial Literacy"
+  | "Scholarship Session"
+  | "Transfer Event"
+  | "Leadership Event"
+  | "Career Event"
+  | "Other";
+
+export const EVENT_TYPES: EventType[] = [
+  "Workshop",
+  "College Tour",
+  "Financial Literacy",
+  "Scholarship Session",
+  "Transfer Event",
+  "Leadership Event",
+  "Career Event",
+  "Other",
+];
+
+export type RSVPStatus = "registered" | "cancelled" | "waitlist";
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  role: UserRole;
+  email: string;
+  phone?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface TRIOStudent {
+  id: string;
+  student_number: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  date_of_birth?: string;
+  program: string;
+  enrollment_date: string;
+  enrollment_status: EnrollmentStatus;
+  gpa?: number;
+  credit_hours_completed: number;
+  first_generation: boolean;
+  low_income: boolean;
+  disabled: boolean;
+  advisor_id?: string;
+  advisor_name?: string;
+  work_location?: string;
+  department?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  // computed
+  full_name: string;
+  activity_count?: number;
+  last_activity?: string;
+}
+
+export interface Activity {
+  id: string;
+  student_id: string;
+  student_name?: string;
+  activity_type: ActivityType;
+  check_in_time: string;
+  check_out_time?: string;
+  duration_minutes?: number;
+  notes?: string;
+  staff_id?: string;
+  staff_name?: string;
+  location?: string;
+  meeting_id?: string;
+  event_id?: string;
+  created_at: string;
+}
+
+export interface Meeting {
+  id: string;
+  student_id: string;
+  student_name?: string;
+  advisor_id: string;
+  advisor_name?: string;
+  meeting_date: string;
+  meeting_time: string;
+  duration_minutes: number;
+  meeting_type: MeetingType;
+  status: MeetingStatus;
+  notes?: string;
+  location?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TRIOEvent {
+  id: string;
+  title: string;
+  description?: string;
+  event_type: EventType;
+  event_date: string;
+  start_time: string;
+  end_time?: string;
+  location?: string;
+  capacity?: number;
+  program?: string;
+  host_id?: string;
+  host_name?: string;
+  is_active: boolean;
+  rsvp_count?: number;
+  attendance_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventRSVP {
+  id: string;
+  event_id: string;
+  student_id: string;
+  student_name?: string;
+  status: RSVPStatus;
+  created_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: "info" | "warning" | "success" | "error" | "reminder";
+  is_read: boolean;
+  related_type?: string;
+  related_id?: string;
+  created_at: string;
+}
+
+export interface Scholarship {
+  id: string;
+  title: string;
+  description?: string;
+  amount?: number;
+  deadline?: string;
+  source_url?: string;
+  requirements?: string;
+  category?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DashboardStats {
+  total_students: number;
+  active_students: number;
+  total_activities_this_month: number;
+  meetings_this_week: number;
+  upcoming_events: number;
+  no_show_rate: number;
+  avg_activities_per_student: number;
+  students_needing_attention: number;
+}
+
+export interface ReportFilters {
+  start_date: string;
+  end_date: string;
+  activity_type?: ActivityType;
+  advisor_id?: string;
+  program?: string;
+}
