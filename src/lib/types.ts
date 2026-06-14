@@ -1,6 +1,15 @@
-// Core TRIO Connect Types
+// TRIO Success OS — Core Types
 
-export type UserRole = "director" | "advisor" | "student";
+export type UserRole =
+  | "director"
+  | "advisor"
+  | "tutor"
+  | "staff"
+  | "student_worker"
+  | "admin"
+  | "student";
+
+export const STAFF_ROLES: UserRole[] = ["director", "advisor", "tutor", "staff", "student_worker", "admin"];
 
 export type EnrollmentStatus = "active" | "inactive" | "graduated" | "transferred" | "withdrawn";
 
@@ -32,6 +41,29 @@ export const ACTIVITY_TYPES: ActivityType[] = [
   "Resource Center Visit",
   "Computer Lab Usage",
   "General Office Visit",
+  "Other",
+];
+
+export type CheckInReason =
+  | "Advising Meeting"
+  | "Tutoring"
+  | "Financial Aid"
+  | "Study Space"
+  | "Workshop"
+  | "Event"
+  | "Computer Use"
+  | "Quick Question"
+  | "Other";
+
+export const CHECK_IN_REASONS: CheckInReason[] = [
+  "Advising Meeting",
+  "Tutoring",
+  "Financial Aid",
+  "Study Space",
+  "Workshop",
+  "Event",
+  "Computer Use",
+  "Quick Question",
   "Other",
 ];
 
@@ -85,6 +117,20 @@ export const EVENT_TYPES: EventType[] = [
 
 export type RSVPStatus = "registered" | "cancelled" | "waitlist";
 
+export type AIInsightType = "risk" | "opportunity" | "info" | "achievement";
+export type AIInsightSeverity = "high" | "medium" | "low";
+
+export interface AIInsight {
+  id: string;
+  type: AIInsightType;
+  severity: AIInsightSeverity;
+  message: string;
+  count?: number;
+  action_label?: string;
+  action_path?: string;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   full_name: string;
@@ -111,10 +157,13 @@ export interface TRIOStudent {
   first_generation: boolean;
   low_income: boolean;
   disabled: boolean;
+  veteran?: boolean;
   advisor_id?: string;
   advisor_name?: string;
   work_location?: string;
   department?: string;
+  major?: string;
+  graduation_date?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -122,6 +171,7 @@ export interface TRIOStudent {
   full_name: string;
   activity_count?: number;
   last_activity?: string;
+  success_score?: number;
 }
 
 export interface Activity {
@@ -129,6 +179,7 @@ export interface Activity {
   student_id: string;
   student_name?: string;
   activity_type: ActivityType;
+  check_in_reason?: CheckInReason;
   check_in_time: string;
   check_out_time?: string;
   duration_minutes?: number;
@@ -154,6 +205,7 @@ export interface Meeting {
   status: MeetingStatus;
   notes?: string;
   location?: string;
+  virtual_link?: string;
   created_at: string;
   updated_at: string;
 }
@@ -169,6 +221,7 @@ export interface TRIOEvent {
   location?: string;
   capacity?: number;
   program?: string;
+  grant_category?: string;
   host_id?: string;
   host_name?: string;
   is_active: boolean;
@@ -221,6 +274,11 @@ export interface DashboardStats {
   no_show_rate: number;
   avg_activities_per_student: number;
   students_needing_attention: number;
+  // Extended metrics
+  students_active_today: number;
+  total_service_hours: number;
+  grant_compliance_score: number;
+  scholarships_tracked: number;
 }
 
 export interface ReportFilters {

@@ -7,12 +7,12 @@ import { supabase, isSupabaseConfigured } from "./supabase";
 import type {
   TRIOStudent, Activity, Meeting, TRIOEvent, EventRSVP,
   Notification, Scholarship, DashboardStats, Profile,
-  ActivityType, MeetingStatus, ReportFilters,
+  ActivityType, MeetingStatus, ReportFilters, UserRole, AIInsight,
 } from "./types";
 import {
   DEMO_STUDENTS, DEMO_ACTIVITIES, DEMO_MEETINGS, DEMO_EVENTS,
   DEMO_RSVPS, DEMO_NOTIFICATIONS, DEMO_SCHOLARSHIPS, DEMO_STATS,
-  DEMO_PROFILES, DEMO_ACCOUNTS,
+  DEMO_PROFILES, DEMO_ACCOUNTS, DEMO_AI_INSIGHTS,
 } from "./demo-data";
 
 // ── Local (demo) store ────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ export interface SessionUser {
   id: string;
   email: string;
   full_name: string;
-  role: "director" | "advisor" | "student";
+  role: UserRole;
 }
 
 export async function signIn(email: string, password: string): Promise<{ user: SessionUser | null; error: string | null }> {
@@ -381,7 +381,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       supabase.from("meetings").select("*", { count: "exact", head: true }).gte("meeting_date", weekAgo.split("T")[0]),
       supabase.from("events").select("*", { count: "exact", head: true }).gte("event_date", now.toISOString().split("T")[0]),
     ]);
-    return { total_students: total || 0, active_students: active || 0, total_activities_this_month: monthActs || 0, meetings_this_week: weekMtgs || 0, upcoming_events: upcoming || 0, no_show_rate: 0, avg_activities_per_student: 0, students_needing_attention: 0 };
+    return { total_students: total || 0, active_students: active || 0, total_activities_this_month: monthActs || 0, meetings_this_week: weekMtgs || 0, upcoming_events: upcoming || 0, no_show_rate: 0, avg_activities_per_student: 0, students_needing_attention: 0, students_active_today: 0, total_service_hours: 0, grant_compliance_score: 0, scholarships_tracked: 0 };
   }
   return DEMO_STATS;
 }
@@ -404,6 +404,12 @@ export async function getStudentActivitySummary(filters?: ReportFilters): Promis
     map[a.student_name || a.student_id].types.add(a.activity_type);
   });
   return Object.entries(map).map(([student, v]) => ({ student, count: v.count, last_activity: v.last, types: Array.from(v.types) })).sort((a, b) => b.count - a.count);
+}
+
+// ── AI Insights ───────────────────────────────────────────────────────────────
+export function getAIInsights(): AIInsight[] {
+  if (isSupabaseConfigured) return []; // Real AI layer — implement with AI SDK
+  return DEMO_AI_INSIGHTS;
 }
 
 // ── Reset demo data ───────────────────────────────────────────────────────────

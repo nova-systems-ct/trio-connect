@@ -1,6 +1,6 @@
 import type {
   Profile, TRIOStudent, Activity, Meeting, TRIOEvent, EventRSVP,
-  Notification, Scholarship, ActivityType, MeetingType, MeetingStatus, EventType,
+  Notification, Scholarship, ActivityType, MeetingType, MeetingStatus, EventType, AIInsight,
 } from "./types";
 
 function daysAgo(n: number): string {
@@ -206,11 +206,26 @@ export const DEMO_NOTIFICATIONS: Notification[] = [
 ];
 
 // ── Demo accounts ─────────────────────────────────────────────────────────────
-export const DEMO_ACCOUNTS = {
-  director: { email: "director@trio-demo.edu", password: "TRIODirector2026!", profile: DEMO_DIRECTOR },
-  advisor:  { email: "advisor@trio-demo.edu",  password: "TRIOAdvisor2026!",  profile: DEMO_ADVISORS[0] },
-  student:  { email: "student@trio-demo.edu",  password: "TRIOStudent2026!",  profile: { id: "stu-001", full_name: DEMO_STUDENTS[0].full_name, role: "student" as const, email: "student@trio-demo.edu", is_active: true, created_at: daysAgo(300) } },
+const DEMO_ADMIN_PROFILE: Profile = {
+  id: "adm-001", full_name: "Nova Admin", role: "admin",
+  email: "admin@trio-demo.edu", phone: "203-555-0099", is_active: true, created_at: daysAgo(400),
 };
+
+export const DEMO_ACCOUNTS = {
+  admin:    { email: "admin@trio-demo.edu",    password: "NovaTRIO2026!",      profile: DEMO_ADMIN_PROFILE },
+  director: { email: "director@trio-demo.edu", password: "TRIODirector2026!",  profile: DEMO_DIRECTOR },
+  advisor:  { email: "advisor@trio-demo.edu",  password: "TRIOAdvisor2026!",   profile: DEMO_ADVISORS[0] },
+  student:  { email: "student@trio-demo.edu",  password: "TRIOStudent2026!",   profile: { id: "stu-001", full_name: DEMO_STUDENTS[0].full_name, role: "student" as const, email: "student@trio-demo.edu", is_active: true, created_at: daysAgo(300) } },
+};
+
+// ── AI Insights ───────────────────────────────────────────────────────────────
+export const DEMO_AI_INSIGHTS: AIInsight[] = [
+  { id: "ai-001", type: "risk", severity: "high", message: "27 students have not visited TRIO in 30+ days.", count: 27, action_label: "View Students", action_path: "/students", created_at: daysAgo(0) },
+  { id: "ai-002", type: "risk", severity: "medium", message: "12 students may be missing FAFSA documents before the deadline.", count: 12, action_label: "Send Reminder", action_path: "/students", created_at: daysAgo(0) },
+  { id: "ai-003", type: "opportunity", severity: "medium", message: "8 students match criteria for new scholarship opportunities.", count: 8, action_label: "View Matches", action_path: "/reports", created_at: daysAgo(0) },
+  { id: "ai-004", type: "risk", severity: "medium", message: "5 students have declining attendance trends this semester.", count: 5, action_label: "Review", action_path: "/students", created_at: daysAgo(0) },
+  { id: "ai-005", type: "info", severity: "low", message: "End-of-semester grant report due in 14 days.", action_label: "Generate Report", action_path: "/reports", created_at: daysAgo(0) },
+];
 
 // ── Demo stats ────────────────────────────────────────────────────────────────
 export const DEMO_STATS = {
@@ -235,4 +250,9 @@ export const DEMO_STATS = {
     const d = new Date(s.last_activity);
     return (Date.now() - d.getTime()) > 21 * 86400000;
   }).length,
+  // Extended metrics
+  students_active_today: 24,
+  total_service_hours: 156,
+  grant_compliance_score: 87,
+  scholarships_tracked: 5,
 };
