@@ -323,6 +323,34 @@ export interface Message {
 
 export type DocumentCategory = "FAFSA" | "Consent Form" | "Scholarship" | "Academic" | "Program Form" | "Other";
 
+export type TaskPriority = "High" | "Medium" | "Low";
+export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled";
+export type TaskCategory = "Follow-Up" | "Academic" | "Financial Aid" | "FAFSA" | "Scholarship" | "Event" | "Documentation" | "Outreach" | "Other";
+
+export const TASK_CATEGORIES: TaskCategory[] = [
+  "Follow-Up", "Academic", "Financial Aid", "FAFSA", "Scholarship",
+  "Event", "Documentation", "Outreach", "Other",
+];
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  category: TaskCategory;
+  priority: TaskPriority;
+  status: TaskStatus;
+  due_date?: string;
+  assigned_to_id?: string;
+  assigned_to_name?: string;
+  student_id?: string;
+  student_name?: string;
+  created_by_id: string;
+  created_by_name: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StudentDocument {
   id: string;
   student_id: string;

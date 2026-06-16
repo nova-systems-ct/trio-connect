@@ -1,7 +1,7 @@
 import type {
   Profile, TRIOStudent, Activity, Meeting, TRIOEvent, EventRSVP,
   Notification, Scholarship, ActivityType, MeetingType, MeetingStatus, EventType, AIInsight,
-  StudentNote, Message, StudentDocument,
+  StudentNote, Message, StudentDocument, Task,
 } from "./types";
 
 function daysAgo(n: number): string {
@@ -286,3 +286,25 @@ export const DEMO_STATS = {
   grant_compliance_score: 87,
   scholarships_tracked: 5,
 };
+
+// ── Tasks ─────────────────────────────────────────────────────────────────────
+function futureDate(daysFromNow: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  return d.toISOString().split("T")[0];
+}
+
+export const DEMO_TASKS: Task[] = [
+  { id: "task-001", title: "Send FAFSA deadline reminder to 12 students", category: "FAFSA", priority: "High", status: "pending", due_date: futureDate(2), assigned_to_id: "adv-001", assigned_to_name: "Maria Rodriguez", created_by_id: "adv-001", created_by_name: "Maria Rodriguez", created_at: daysAgo(1), updated_at: daysAgo(1) },
+  { id: "task-002", title: "Follow up with Isaiah Johnson — missed appointment", category: "Follow-Up", priority: "High", status: "pending", due_date: futureDate(1), student_id: "stu-010", student_name: "Isaiah Johnson", assigned_to_id: "adv-001", assigned_to_name: "Maria Rodriguez", created_by_id: "adv-001", created_by_name: "Maria Rodriguez", created_at: daysAgo(0), updated_at: daysAgo(0) },
+  { id: "task-003", title: "Review scholarship applications — Spring cohort", category: "Scholarship", priority: "High", status: "in_progress", due_date: futureDate(5), assigned_to_id: "adv-002", assigned_to_name: "James Thompson", created_by_id: "dir-001", created_by_name: "Dr. Patricia Williams", created_at: daysAgo(3), updated_at: daysAgo(1) },
+  { id: "task-004", title: "Schedule FAFSA workshop — early registration", category: "Event", priority: "Medium", status: "in_progress", due_date: futureDate(7), assigned_to_id: "adv-003", assigned_to_name: "Angela Chen", created_by_id: "adv-003", created_by_name: "Angela Chen", created_at: daysAgo(2), updated_at: daysAgo(2) },
+  { id: "task-005", title: "Update consent forms for 8 new students", category: "Documentation", priority: "Medium", status: "pending", due_date: futureDate(3), assigned_to_id: "adv-001", assigned_to_name: "Maria Rodriguez", created_by_id: "adv-001", created_by_name: "Maria Rodriguez", created_at: daysAgo(1), updated_at: daysAgo(1) },
+  { id: "task-006", title: "Academic coaching session plan — STEM cohort", category: "Academic", priority: "Medium", status: "pending", due_date: futureDate(6), assigned_to_id: "adv-002", assigned_to_name: "James Thompson", created_by_id: "adv-002", created_by_name: "James Thompson", created_at: daysAgo(4), updated_at: daysAgo(4) },
+  { id: "task-007", title: "Outreach emails — students with no visits this month", category: "Outreach", priority: "Medium", status: "in_progress", due_date: futureDate(2), assigned_to_id: "adv-004", assigned_to_name: "David Okafor", created_by_id: "adv-004", created_by_name: "David Okafor", created_at: daysAgo(1), updated_at: daysAgo(0) },
+  { id: "task-008", title: "Submit quarterly program report to director", category: "Documentation", priority: "High", status: "completed", due_date: futureDate(-1), assigned_to_id: "adv-001", assigned_to_name: "Maria Rodriguez", created_by_id: "dir-001", created_by_name: "Dr. Patricia Williams", completed_at: daysAgo(0), created_at: daysAgo(7), updated_at: daysAgo(0), student_id: undefined, student_name: undefined },
+  { id: "task-009", title: "Financial aid verification — 5 students flagged", category: "Financial Aid", priority: "High", status: "completed", due_date: futureDate(-2), assigned_to_id: "adv-003", assigned_to_name: "Angela Chen", created_by_id: "adv-003", created_by_name: "Angela Chen", completed_at: daysAgo(1), created_at: daysAgo(5), updated_at: daysAgo(1), student_id: undefined, student_name: undefined },
+  { id: "task-010", title: "Transfer planning workshop — prep materials", category: "Event", priority: "Low", status: "pending", due_date: futureDate(14), assigned_to_id: "adv-005", assigned_to_name: "Sarah Patel", created_by_id: "adv-005", created_by_name: "Sarah Patel", created_at: daysAgo(2), updated_at: daysAgo(2) },
+  { id: "task-011", title: "Career fair registration — student sign-up sheet", category: "Outreach", priority: "Low", status: "pending", due_date: futureDate(10), assigned_to_id: "adv-002", assigned_to_name: "James Thompson", created_by_id: "adv-002", created_by_name: "James Thompson", created_at: daysAgo(3), updated_at: daysAgo(3) },
+  { id: "task-012", title: "Complete annual student success surveys", category: "Documentation", priority: "Medium", status: "completed", due_date: futureDate(-3), assigned_to_id: "adv-004", assigned_to_name: "David Okafor", created_by_id: "adv-004", created_by_name: "David Okafor", completed_at: daysAgo(2), created_at: daysAgo(10), updated_at: daysAgo(2) },
+];

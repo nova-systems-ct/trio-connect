@@ -8,13 +8,13 @@ import type {
   TRIOStudent, Activity, Meeting, TRIOEvent, EventRSVP,
   Notification, Scholarship, DashboardStats, Profile,
   ActivityType, MeetingStatus, ReportFilters, UserRole, AIInsight,
-  StudentNote, Message, StudentDocument,
+  StudentNote, Message, StudentDocument, Task, TaskStatus,
 } from "./types";
 import {
   DEMO_STUDENTS, DEMO_ACTIVITIES, DEMO_MEETINGS, DEMO_EVENTS,
   DEMO_RSVPS, DEMO_NOTIFICATIONS, DEMO_SCHOLARSHIPS, DEMO_STATS,
   DEMO_PROFILES, DEMO_ACCOUNTS, DEMO_AI_INSIGHTS,
-  DEMO_STUDENT_NOTES, DEMO_MESSAGES, DEMO_DOCUMENTS,
+  DEMO_STUDENT_NOTES, DEMO_MESSAGES, DEMO_DOCUMENTS, DEMO_TASKS,
 } from "./demo-data";
 
 // ── Local (demo) store ────────────────────────────────────────────────────────
@@ -31,6 +31,7 @@ const LOCAL_KEYS = {
   notes: "trio-notes-v1",
   messages: "trio-messages-v1",
   documents: "trio-documents-v1",
+  tasks: "trio-tasks-v1",
 };
 
 function read<T>(key: string, fallback: T[]): T[] {
@@ -52,6 +53,7 @@ function initDemo() {
   if (!localStorage.getItem(LOCAL_KEYS.notes)) write(LOCAL_KEYS.notes, DEMO_STUDENT_NOTES);
   if (!localStorage.getItem(LOCAL_KEYS.messages)) write(LOCAL_KEYS.messages, DEMO_MESSAGES);
   if (!localStorage.getItem(LOCAL_KEYS.documents)) write(LOCAL_KEYS.documents, DEMO_DOCUMENTS);
+  if (!localStorage.getItem(LOCAL_KEYS.tasks)) write(LOCAL_KEYS.tasks, DEMO_TASKS);
 }
 
 initDemo();
@@ -469,8 +471,43 @@ export async function deleteDocument(id: string): Promise<void> {
   write(LOCAL_KEYS.documents, read<StudentDocument>(LOCAL_KEYS.documents, []).filter((d) => d.id !== id));
 }
 
+// ── Tasks ─────────────────────────────────────────────────────────────────────
+export async function getTasks(): Promise<Task[]> {
+  return read<Task>(LOCAL_KEYS.tasks, DEMO_TASKS).sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+}
+
+export async function createTask(data: Omit<Task, "id" | "created_at" | "updated_at">): Promise<Task> {
+  const now = new Date().toISOString();
+  const task: Task = { ...data, id: `task-${Date.now()}`, created_at: now, updated_at: now };
+  const tasks = read<Task>(LOCAL_KEYS.tasks, DEMO_TASKS);
+  tasks.unshift(task);
+  write(LOCAL_KEYS.tasks, tasks);
+  return task;
+}
+
+export async function updateTask(id: string, updates: Partial<Task>): Promise<void> {
+  const now = new Date().toISOString();
+  write(LOCAL_KEYS.tasks, read<Task>(LOCAL_KEYS.tasks, []).map((t) =>
+    t.id === id ? { ...t, ...updates, updated_at: now } : t
+  ));
+}
+
+export async function updateTaskStatus(id: string, status: TaskStatus): Promise<void> {
+  const now = new Date().toISOString();
+  write(LOCAL_KEYS.tasks, read<Task>(LOCAL_KEYS.tasks, []).map((t) =>
+    t.id === id ? { ...t, status, completed_at: status === "completed" ? now : undefined, updated_at: now } : t
+  ));
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  write(LOCAL_KEYS.tasks, read<Task>(LOCAL_KEYS.tasks, []).filter((t) => t.id !== id));
+}
+
 // ── Reset demo data ───────────────────────────────────────────────────────────
 export function resetDemoData() {
   Object.values(LOCAL_KEYS).forEach((k) => localStorage.removeItem(k));
   initDemo();
 }
+
+// Re-export Task type for consumers
+export type { Task };

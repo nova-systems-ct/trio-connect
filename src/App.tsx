@@ -13,6 +13,8 @@ import MessagingPage from "./pages/MessagingPage";
 import AICenterPage from "./pages/AICenterPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import KioskPage from "./pages/KioskPage";
+import TasksPage from "./pages/TasksPage";
+import ResourcesPage from "./pages/ResourcesPage";
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -45,6 +47,8 @@ function AppRoutes() {
         <Route path="/documents"  element={<DocumentsPage />} />
         <Route path="/reports"    element={<ReportsPage />} />
         <Route path="/ai-center"  element={<AICenterPage />} />
+        <Route path="/tasks"      element={<TasksPage />} />
+        <Route path="/resources"  element={<ResourcesPage />} />
         <Route path="/settings"   element={<SettingsPage />} />
         <Route path="*"           element={<Navigate to="/dashboard" replace />} />
       </Routes>
