@@ -1,84 +1,77 @@
 @import "tailwindcss";
 
-/* ── Nova Systems × TRIO Success OS Design Tokens ─────────────────────── */
+/* ── TRIO Connect × Nova Systems — Enterprise Design System v3 ─────────── */
 :root {
-  /* Brand */
-  --trio-red:         #C1121F;
-  --trio-red-light:   #FFF4F4;
-  --trio-red-border:  #FECDD3;
-  --trio-red-hover:   #A00E18;
-
-  /* Nova Gold — premium metallic gradient */
-  --nova-gold:        #D4AF37;
-  --nova-gold-light:  #FFF4B0;
-  --nova-gold-mid:    #F9E27D;
-  --nova-gold-dark:   #B8860B;
-  --nova-gold-bg:     #FFFBEB;
-  --nova-gold-border: #F9E27D;
-
   /* Surfaces */
-  --bg-primary:   #FFFFFF;
-  --bg-secondary: #F7F7F7;
-  --bg-hover:     #F5F5F5;
-  --bg-active:    #FFF4F4;
+  --bg-1:    #050505;
+  --bg-2:    #0D1117;
+  --bg-3:    #111827;
+  --bg-card: #111827;
+  --bg-card-hover: #1A2236;
+  --bg-elevated: #1E2A3B;
 
   /* Text */
-  --text-primary:   #111111;
-  --text-secondary: #666666;
-  --text-muted:     #9CA3AF;
-  --text-inverse:   #FFFFFF;
+  --text-1: #F8FAFC;
+  --text-2: #94A3B8;
+  --text-3: #475569;
+
+  /* Brand Red */
+  --trio-red:       #D72638;
+  --trio-red-dim:   rgba(215, 38, 56, 0.12);
+  --trio-red-glow:  rgba(215, 38, 56, 0.3);
+
+  /* Nova Gold — luxury accent only */
+  --gold-1: #FFF4B0;
+  --gold-2: #E6C76B;
+  --gold-3: #D4AF37;
+  --gold-4: #F7E8A4;
+  --gold-gradient: linear-gradient(135deg, #FFF4B0 0%, #E6C76B 30%, #D4AF37 60%, #F7E8A4 100%);
+  --gold-text: #D4AF37;
+  --gold-dim: rgba(212, 175, 55, 0.08);
 
   /* Status */
-  --success:       #16A34A;
-  --success-light: #F0FDF4;
-  --info:          #2563EB;
-  --info-light:    #EFF6FF;
-  --warning:       #D97706;
-  --warning-light: #FFFBEB;
-  --error:         #DC2626;
-  --error-light:   #FEF2F2;
+  --green:     #22C55E;
+  --green-dim: rgba(34, 197, 94, 0.10);
+  --blue:      #3B82F6;
+  --blue-dim:  rgba(59, 130, 246, 0.10);
+  --amber:     #F59E0B;
+  --amber-dim: rgba(245, 158, 11, 0.10);
+  --purple:    #7C3AED;
 
   /* Structure */
-  --border:       #E5E7EB;
-  --border-light: #F0F0F0;
+  --border:       rgba(248, 250, 252, 0.06);
+  --border-hover: rgba(248, 250, 252, 0.12);
 
-  /* Elevation */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.07);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
-  --shadow-xl: 0 16px 48px rgba(0,0,0,0.14);
-
-  /* Radii */
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
-  --r-2xl: 24px;
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.6);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.7);
+  --glow-red:  0 0 24px rgba(215,38,56,0.25);
+  --glow-gold: 0 0 24px rgba(212,175,55,0.2);
 }
 
-/* ── Reset & Base ──────────────────────────────────────────────────────── */
+/* ── Base ────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 16px; }
+html { font-size: 16px; color-scheme: dark; }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-1);
+  color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
 }
 
-/* ── Animations ────────────────────────────────────────────────────────── */
+/* ── Animations ──────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(-8px); }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
@@ -88,7 +81,7 @@ body {
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
+  50%       { opacity: 0.4; }
 }
 
 @keyframes goldShimmer {
@@ -96,45 +89,47 @@ body {
   100% { background-position: -200% center; }
 }
 
-@keyframes livePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(193,18,31,0.4); }
-  50%       { box-shadow: 0 0 0 5px rgba(193,18,31,0); }
+@keyframes liveDot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(215,38,56,0.5); }
+  50%       { box-shadow: 0 0 0 6px rgba(215,38,56,0); }
 }
 
-/* ── Utility classes ───────────────────────────────────────────────────── */
-.animate-fade-in   { animation: fadeIn 0.25s ease both; }
-.animate-slide-in  { animation: slideIn 0.25s ease both; }
-.animate-spin      { animation: spin 0.8s linear infinite; }
-.animate-pulse     { animation: pulse 2s ease-in-out infinite; }
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Utility ──────────────────────────────────────────────────────────────── */
+.animate-fade-in  { animation: fadeIn 0.3s ease both; }
+.animate-scale-in { animation: scaleIn 0.25s ease both; }
+.animate-spin     { animation: spin 0.7s linear infinite; }
+
+.gold-text {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 .gold-shimmer {
-  background: linear-gradient(135deg,
-    var(--nova-gold-dark) 0%,
-    var(--nova-gold) 25%,
-    var(--nova-gold-mid) 45%,
-    var(--nova-gold-light) 50%,
-    var(--nova-gold-mid) 55%,
-    var(--nova-gold) 75%,
-    var(--nova-gold-dark) 100%
-  );
+  background: linear-gradient(90deg, #B8860B 0%, #D4AF37 25%, #FFF6C5 50%, #D4AF37 75%, #B8860B 100%);
   background-size: 200% auto;
-  animation: goldShimmer 4s linear infinite;
+  animation: goldShimmer 3s linear infinite;
 }
 
-/* ── Card base ─────────────────────────────────────────────────────────── */
-.card {
-  background: var(--bg-primary);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm);
-  padding: 20px 22px;
+.glass {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* ── Print (kept from original for future use) ─────────────────────────── */
+/* ── Print ────────────────────────────────────────────────────────────────── */
 .print-portal { display: none; }
 
 @media print {
   @page { size: letter portrait; margin: 0.18in 0.28in; }
-  html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
+  html, body { margin: 0 !important; padding: 0 !important; background: white !important; color: black !important; }
   .no-print { display: none !important; }
   .print-portal { display: block !important; }
 }
