@@ -1,335 +1,508 @@
-import { useState } from "react";
-import { DEMO_STUDENTS } from "../lib/demo-data";
-import type { TRIOStudent } from "../lib/types";
+import { useState, useEffect, useRef } from "react";
+import { getStudents, getActivities, createActivity, updateActivity } from "../lib/db";
+import type { TRIOStudent, Activity } from "../lib/types";
+import { differenceInMinutes } from "date-fns";
 
-type Method = "id" | "qr" | "search";
-type Step = "home" | "select-method" | "id-entry" | "search-entry" | "confirm" | "success";
+type Lang = "en" | "es";
+type Mode = "normal" | "accessible";
+type Flow = "checkin" | "checkout";
+type Step = "home" | "method" | "id-entry" | "search-entry" | "confirm" | "reason" | "submitting" | "success" | "error";
 
-const REASONS = [
-  "Advising Meeting", "Tutoring", "Financial Aid",
-  "Study Space", "Workshop", "Event",
-  "Computer Use", "Quick Question", "Other",
-];
+const LABELS = {
+  en: {
+    title: "Welcome to TRIO Connect",
+    subtitle: "Student Support Services",
+    checkin: "Check In",
+    checkout: "Check Out",
+    appointment: "View Appointment",
+    scanID: "Scan Student ID",
+    back: "← Back",
+    enterID: "Enter Your Student ID",
+    enterIDSub: "Type your TRIO student ID number",
+    searchName: "Search Your Name",
+    searchNameSub: "Type your first or last name",
+    idPlaceholder: "e.g. TRIO-2026-001",
+    searchPlaceholder: "First or last name…",
+    findRecord: "Find My Record",
+    isThisYou: "Is this you?",
+    yes: "Yes, this is me",
+    no: "That's not me",
+    selectReason: "Why are you visiting today?",
+    confirm: "Confirm Check-In",
+    submit: "Check In",
+    submitOut: "Check Out",
+    successIn: "You're checked in!",
+    successOut: "You're checked out!",
+    successSub: "Have a great visit.",
+    successSubOut: "Thank you for visiting TRIO.",
+    notFound: "Student not found. Please try again or ask staff for help.",
+    alreadyIn: "Already Checked In",
+    selectReasonError: "Please select a reason before continuing.",
+    noStudents: "Please see staff at the front desk.",
+  },
+  es: {
+    title: "Bienvenido a TRIO Connect",
+    subtitle: "Servicios de Apoyo Estudiantil",
+    checkin: "Registrarse",
+    checkout: "Salir",
+    appointment: "Ver Cita",
+    scanID: "Escanear ID",
+    back: "← Regresar",
+    enterID: "Ingresa tu ID Estudiantil",
+    enterIDSub: "Escribe tu número de ID TRIO",
+    searchName: "Busca tu Nombre",
+    searchNameSub: "Escribe tu primer o apellido",
+    idPlaceholder: "ej. TRIO-2026-001",
+    searchPlaceholder: "Nombre o apellido…",
+    findRecord: "Encontrar mi Registro",
+    isThisYou: "¿Eres tú?",
+    yes: "Sí, soy yo",
+    no: "No soy yo",
+    selectReason: "¿Por qué visitas hoy?",
+    confirm: "Confirmar Registro",
+    submit: "Registrarse",
+    submitOut: "Marcar Salida",
+    successIn: "¡Estás registrado!",
+    successOut: "¡Has marcado tu salida!",
+    successSub: "Que tengas una excelente visita.",
+    successSubOut: "Gracias por visitar TRIO.",
+    notFound: "Estudiante no encontrado. Por favor pide ayuda al personal.",
+    alreadyIn: "Ya Registrado",
+    selectReasonError: "Por favor selecciona una razón antes de continuar.",
+    noStudents: "Por favor consulta al personal en la recepción.",
+  },
+};
+
+const REASONS_EN = ["Advising / Counseling", "Tutoring", "Financial Aid Assistance", "Study Hall", "Workshop or Event", "Computer Lab", "Transfer Planning", "Scholarship Help", "Quick Question", "Other"];
+const REASONS_ES = ["Asesoría / Consejería", "Tutoría", "Asistencia de Ayuda Financiera", "Sala de Estudio", "Taller o Evento", "Laboratorio de Computadoras", "Planificación de Transferencia", "Ayuda con Becas", "Pregunta Rápida", "Otro"];
+
+const GRAD = "linear-gradient(135deg, #1a0000 0%, #0B0B0B 50%, #000a0f 100%)";
+
+function KioskBtn({
+  children, onClick, variant = "default", large = false, disabled = false, accessible = false,
+}: {
+  children: React.ReactNode; onClick?: () => void;
+  variant?: "default" | "red" | "ghost" | "outline";
+  large?: boolean; disabled?: boolean; accessible?: boolean;
+}) {
+  const base: React.CSSProperties = {
+    borderRadius: 18, border: "none", cursor: disabled ? "not-allowed" : "pointer",
+    fontFamily: "'Inter', sans-serif", fontWeight: 800, transition: "all 0.15s",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: accessible ? (large ? 26 : 20) : (large ? 22 : 17),
+    padding: accessible ? (large ? "28px 40px" : "18px 30px") : (large ? "22px 32px" : "14px 24px"),
+    lineHeight: 1,
+  };
+  const styles: Record<string, React.CSSProperties> = {
+    red: { ...base, background: "#D72638", color: "#fff", boxShadow: "0 6px 30px rgba(215,38,56,0.4)" },
+    default: { ...base, background: "#1A1A1A", color: "#F8FAFC", border: "1.5px solid rgba(255,255,255,0.1)" },
+    ghost: { ...base, background: "rgba(255,255,255,0.06)", color: "#94A3B8", border: "none" },
+    outline: { ...base, background: "transparent", color: "#F8FAFC", border: "1.5px solid rgba(255,255,255,0.15)" },
+  };
+  return (
+    <button style={styles[variant]} onClick={onClick} disabled={disabled}
+      onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.opacity = "0.92"; } }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.opacity = "1"; }}>
+      {children}
+    </button>
+  );
+}
 
 export default function KioskPage() {
+  const [lang, setLang] = useState<Lang>("en");
+  const [mode, setMode] = useState<Mode>("normal");
+  const [flow, setFlow] = useState<Flow>("checkin");
   const [step, setStep] = useState<Step>("home");
-  const [method, setMethod] = useState<Method>("id");
+  const [students, setStudents] = useState<TRIOStudent[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [idInput, setIdInput] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [foundStudent, setFoundStudent] = useState<TRIOStudent | null>(null);
+  const [searchResults, setSearchResults] = useState<TRIOStudent[]>([]);
+  const [found, setFound] = useState<TRIOStudent | null>(null);
+  const [activeSession, setActiveSession] = useState<Activity | null>(null);
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
-  const [searchResults, setSearchResults] = useState<TRIOStudent[]>([]);
+  const [clock, setClock] = useState(new Date());
 
-  const allStudents: TRIOStudent[] = DEMO_STUDENTS;
+  const idRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const L = LABELS[lang];
+  const reasons = lang === "en" ? REASONS_EN : REASONS_ES;
+  const acc = mode === "accessible";
+
+  useEffect(() => {
+    getStudents().then(setStudents);
+    const today = new Date().toISOString().split("T")[0];
+    getActivities().then((a) => setActivities(a.filter((x) => x.check_in_time.startsWith(today))));
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (step === "id-entry") setTimeout(() => idRef.current?.focus(), 100);
+    if (step === "search-entry") setTimeout(() => searchRef.current?.focus(), 100);
+  }, [step]);
 
   function reset() {
     setStep("home");
     setIdInput("");
     setSearchInput("");
-    setFoundStudent(null);
+    setSearchResults([]);
+    setFound(null);
+    setActiveSession(null);
     setReason("");
     setError("");
-    setSearchResults([]);
   }
 
   function handleIdLookup() {
     setError("");
-    const found = allStudents.find(
-      (s) => s.student_number === idInput.trim() || s.id === idInput.trim()
-    );
-    if (found) {
-      setFoundStudent(found);
-      setStep("confirm");
-    } else {
-      setError("No student found with that ID. Please try again or use Search.");
+    const s = students.find((s) => s.student_number.toLowerCase() === idInput.trim().toLowerCase() || s.id === idInput.trim());
+    if (!s) { setError(L.notFound); return; }
+    setFound(s);
+    if (flow === "checkout") {
+      const sess = activities.find((a) => a.student_id === s.id && !a.check_out_time);
+      setActiveSession(sess ?? null);
     }
+    setStep("confirm");
   }
 
   function handleSearch(q: string) {
     setSearchInput(q);
     if (!q.trim()) { setSearchResults([]); return; }
     const lower = q.toLowerCase();
-    setSearchResults(
-      allStudents.filter((s) =>
-        s.full_name.toLowerCase().includes(lower) ||
-        (s.email ?? "").toLowerCase().includes(lower) ||
-        (s.student_number ?? "").toLowerCase().includes(lower)
-      ).slice(0, 6)
-    );
+    setSearchResults(students.filter((s) =>
+      s.full_name.toLowerCase().includes(lower) ||
+      s.student_number.toLowerCase().includes(lower)
+    ).slice(0, 5));
   }
 
-  function handleCheckIn() {
-    if (!foundStudent || !reason) { setError("Please select a reason."); return; }
-    setStep("success");
-    setTimeout(() => reset(), 4000);
+  function handleSelectStudent(s: TRIOStudent) {
+    setFound(s);
+    if (flow === "checkout") {
+      const sess = activities.find((a) => a.student_id === s.id && !a.check_out_time);
+      setActiveSession(sess ?? null);
+    }
+    setStep("confirm");
   }
+
+  async function handleSubmitCheckIn() {
+    if (!found || !reason) { setError(L.selectReasonError); return; }
+    setStep("submitting");
+    await createActivity({
+      student_id: found.id,
+      student_name: found.full_name,
+      activity_type: reason as never,
+      check_in_time: new Date().toISOString(),
+      location: "TRIO Office (Kiosk)",
+    });
+    const today = new Date().toISOString().split("T")[0];
+    getActivities().then((a) => setActivities(a.filter((x) => x.check_in_time.startsWith(today))));
+    setStep("success");
+    setTimeout(() => reset(), 5000);
+  }
+
+  async function handleSubmitCheckOut() {
+    setStep("submitting");
+    if (activeSession) {
+      const mins = differenceInMinutes(new Date(), new Date(activeSession.check_in_time));
+      await updateActivity(activeSession.id, { check_out_time: new Date().toISOString(), duration_minutes: mins });
+      const today = new Date().toISOString().split("T")[0];
+      getActivities().then((a) => setActivities(a.filter((x) => x.check_in_time.startsWith(today))));
+    }
+    setStep("success");
+    setTimeout(() => reset(), 5000);
+  }
+
+  const fontSize = (n: number) => acc ? n * 1.25 : n;
+  const textStyle = (size: number, weight: number, color: string): React.CSSProperties => ({
+    fontSize: fontSize(size), fontWeight: weight, color, margin: 0, lineHeight: 1.2,
+  });
+
+  const alreadyCheckedIn = found && activities.some((a) => a.student_id === found.id && !a.check_out_time);
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#0B0B0B",
+      minHeight: "100vh", background: GRAD,
       display: "flex", flexDirection: "column",
-      fontFamily: "'Inter', sans-serif", userSelect: "none",
-      position: "relative", overflow: "hidden",
+      fontFamily: "'Inter', -apple-system, sans-serif",
+      userSelect: "none", overflow: "hidden", position: "relative",
     }}>
-      {/* Background ambient glow */}
-      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 600, background: "rgba(193,18,31,0.04)", borderRadius: "50%", filter: "blur(80px)", pointerEvents: "none" }} />
+      {/* Ambient red glow */}
+      <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translateX(-50%)", width: 800, height: 600, background: "rgba(215,38,56,0.04)", borderRadius: "50%", filter: "blur(100px)", pointerEvents: "none", zIndex: 0 }} />
 
-      {/* Header */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "24px 40px", borderBottom: "1px solid rgba(255,255,255,0.06)",
-        flexShrink: 0,
-      }}>
+      {/* ── Top bar ──────────────────────────────────────────────────────────── */}
+      <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", padding: acc ? "28px 48px" : "20px 40px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div>
-          <p style={{ fontSize: 28, fontWeight: 900, color: "#FFFFFF", letterSpacing: "-1px" }}>TRIO Connect</p>
-          <p style={{ fontSize: 12, color: "#606060", marginTop: 2 }}>Student Check-In Kiosk · Self-Service</p>
+          <p style={textStyle(acc ? 28 : 22, 900, "#F8FAFC")}>TRIO Connect</p>
+          <p style={{ ...textStyle(acc ? 14 : 11, 500, "#475569"), marginTop: 3 }}>CT State · {L.subtitle}</p>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <p style={{ fontSize: 12, color: "#606060" }}>Powered by</p>
-          <p style={{ fontSize: 14, fontWeight: 800, background: "linear-gradient(135deg,#FFF6C5,#D4AF37,#B8860B)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            Nova Systems
-          </p>
+        <div style={{ textAlign: "center" }}>
+          <p style={textStyle(acc ? 26 : 20, 800, "#F8FAFC")}>{clock.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+          <p style={{ ...textStyle(acc ? 12 : 10, 500, "#475569"), marginTop: 2 }}>{clock.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}</p>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Language */}
+          <button onClick={() => setLang((l) => l === "en" ? "es" : "en")} style={{ padding: acc ? "10px 18px" : "7px 14px", borderRadius: 9, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", fontSize: acc ? 15 : 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+            {lang === "en" ? "🇺🇸 EN" : "🇲🇽 ES"}
+          </button>
+          {/* Accessibility */}
+          <button onClick={() => setMode((m) => m === "normal" ? "accessible" : "normal")} style={{ padding: acc ? "10px 18px" : "7px 14px", borderRadius: 9, background: mode === "accessible" ? "rgba(215,38,56,0.15)" : "rgba(255,255,255,0.06)", border: `1px solid ${mode === "accessible" ? "rgba(215,38,56,0.3)" : "rgba(255,255,255,0.1)"}`, color: mode === "accessible" ? "#D72638" : "#94A3B8", fontSize: acc ? 15 : 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+            {acc ? "A+" : "A"}
+          </button>
+          {step !== "home" && (
+            <button onClick={reset} style={{ padding: acc ? "10px 18px" : "7px 14px", borderRadius: 9, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", fontSize: acc ? 15 : 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+              {L.back}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 40px" }}>
-        <div style={{ width: "100%", maxWidth: 680, animation: "fadeIn 0.3s ease both" }}>
+      {/* ── Main content ─────────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 40px", position: "relative", zIndex: 1 }}>
+        <div style={{ width: "100%", maxWidth: 720, animation: "fadeIn 0.25s ease both" }}>
 
-          {/* HOME */}
+          {/* ── HOME ─────────────────────────────────────────────────────────── */}
           {step === "home" && (
             <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: 36, fontWeight: 900, color: "#FFFFFF", letterSpacing: "-1px", marginBottom: 8 }}>
-                Welcome to TRIO
+              <div style={{ marginBottom: acc ? 48 : 36 }}>
+                <div style={{ width: acc ? 72 : 56, height: acc ? 72 : 56, borderRadius: 16, background: "rgba(215,38,56,0.1)", border: "1px solid rgba(215,38,56,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                  <div style={{ width: acc ? 28 : 22, height: acc ? 28 : 22, borderRadius: 5, background: "#D72638" }} />
+                </div>
+                <p style={textStyle(acc ? 46 : 38, 900, "#F8FAFC")}>{L.title}</p>
+                <p style={{ ...textStyle(acc ? 18 : 15, 400, "#475569"), marginTop: 10 }}>{L.subtitle}</p>
+              </div>
+
+              {/* Primary actions */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <button
+                  onClick={() => { setFlow("checkin"); setStep("method"); }}
+                  style={{
+                    padding: acc ? "48px 32px" : "40px 28px", borderRadius: 24,
+                    background: "#D72638", border: "none", cursor: "pointer",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
+                    boxShadow: "0 8px 40px rgba(215,38,56,0.4)", transition: "all 0.15s",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 16px 60px rgba(215,38,56,0.5)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 40px rgba(215,38,56,0.4)"; }}>
+                  <svg width={acc ? 44 : 36} height={acc ? 44 : 36} fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p style={{ fontSize: acc ? 28 : 22, fontWeight: 900, color: "#fff" }}>{L.checkin}</p>
+                </button>
+
+                <button
+                  onClick={() => { setFlow("checkout"); setStep("method"); }}
+                  style={{
+                    padding: acc ? "48px 32px" : "40px 28px", borderRadius: 24,
+                    background: "#151515", border: "1.5px solid rgba(255,255,255,0.1)", cursor: "pointer",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
+                    transition: "all 0.15s", fontFamily: "'Inter', sans-serif",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(215,38,56,0.4)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.transform = ""; }}>
+                  <svg width={acc ? 44 : 36} height={acc ? 44 : 36} fill="none" viewBox="0 0 24 24" stroke="#94A3B8" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                  </svg>
+                  <p style={{ fontSize: acc ? 28 : 22, fontWeight: 900, color: "#F8FAFC" }}>{L.checkout}</p>
+                </button>
+              </div>
+
+              <p style={{ fontSize: acc ? 13 : 11, color: "#2D3748", marginTop: 12 }}>
+                Need help? Ask a TRIO staff member at the front desk.
               </p>
-              <p style={{ fontSize: 16, color: "#A0A0A0", marginBottom: 48 }}>
-                Select how you'd like to check in today
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+            </div>
+          )}
+
+          {/* ── METHOD SELECTION ─────────────────────────────────────────────── */}
+          {step === "method" && (
+            <div style={{ textAlign: "center" }}>
+              <p style={textStyle(acc ? 36 : 30, 900, "#F8FAFC")}>{flow === "checkin" ? L.checkin : L.checkout}</p>
+              <p style={{ ...textStyle(acc ? 16 : 13, 400, "#475569"), marginTop: 8, marginBottom: acc ? 40 : 32 }}>How would you like to identify yourself?</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
                 {[
-                  { m: "id" as Method, label: "Student ID", sub: "Enter your TRIO student ID number", icon: "🪪" },
-                  { m: "qr" as Method, label: "QR Code", sub: "Scan your digital student pass", icon: "📱" },
-                  { m: "search" as Method, label: "Search Name", sub: "Search by your first or last name", icon: "🔍" },
-                ].map(({ m, label, sub, icon }) => (
-                  <button
-                    key={m}
-                    onClick={() => { setMethod(m); setStep(m === "qr" ? "select-method" : m === "id" ? "id-entry" : "search-entry"); }}
-                    style={{
-                      padding: "36px 24px", borderRadius: 20,
-                      background: "#151515", border: "1.5px solid rgba(255,255,255,0.08)",
-                      cursor: "pointer", display: "flex", flexDirection: "column",
-                      alignItems: "center", gap: 12, transition: "all 0.15s",
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(193,18,31,0.4)"; e.currentTarget.style.background = "#1B1B1B"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "#151515"; e.currentTarget.style.transform = "translateY(0)"; }}
-                  >
-                    <span style={{ fontSize: 42 }}>{icon}</span>
-                    <p style={{ fontSize: 18, fontWeight: 800, color: "#FFFFFF" }}>{label}</p>
-                    <p style={{ fontSize: 12, color: "#606060", lineHeight: 1.4 }}>{sub}</p>
+                  { label: lang === "en" ? "Student ID" : "ID Estudiantil", icon: "🪪", to: "id-entry" as Step },
+                  { label: lang === "en" ? "Search Name" : "Buscar Nombre", icon: "🔍", to: "search-entry" as Step },
+                  { label: lang === "en" ? "QR / Barcode" : "QR / Código", icon: "📱", to: "id-entry" as Step },
+                ].map(({ label, icon, to }) => (
+                  <button key={label} onClick={() => setStep(to)} style={{
+                    padding: acc ? "40px 20px" : "32px 16px", borderRadius: 20,
+                    background: "#151515", border: "1.5px solid rgba(255,255,255,0.09)",
+                    cursor: "pointer", display: "flex", flexDirection: "column",
+                    alignItems: "center", gap: 12, transition: "all 0.15s",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(215,38,56,0.3)"; e.currentTarget.style.background = "#1C1C1C"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; e.currentTarget.style.background = "#151515"; }}>
+                    <span style={{ fontSize: acc ? 48 : 38 }}>{icon}</span>
+                    <p style={{ fontSize: acc ? 18 : 15, fontWeight: 700, color: "#F8FAFC" }}>{label}</p>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* ID ENTRY */}
+          {/* ── ID ENTRY ─────────────────────────────────────────────────────── */}
           {step === "id-entry" && (
             <div style={{ textAlign: "center" }}>
-              <button onClick={reset} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", color: "#A0A0A0", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, marginBottom: 32 }}>
-                ← Back
-              </button>
-              <p style={{ fontSize: 30, fontWeight: 800, color: "#FFFFFF", marginBottom: 8 }}>Enter Your Student ID</p>
-              <p style={{ fontSize: 14, color: "#606060", marginBottom: 36 }}>Your TRIO student ID number</p>
-              <input
-                type="text" value={idInput} onChange={(e) => setIdInput(e.target.value)}
+              <p style={textStyle(acc ? 36 : 28, 900, "#F8FAFC")}>{L.enterID}</p>
+              <p style={{ ...textStyle(acc ? 16 : 13, 400, "#475569"), marginTop: 8, marginBottom: acc ? 40 : 32 }}>{L.enterIDSub}</p>
+              <input ref={idRef} type="text" value={idInput}
+                onChange={(e) => { setIdInput(e.target.value); setError(""); }}
                 onKeyDown={(e) => e.key === "Enter" && handleIdLookup()}
-                placeholder="e.g. STU-2024-001"
-                autoFocus
+                placeholder={L.idPlaceholder} autoFocus
                 style={{
-                  display: "block", width: "100%", padding: "20px 24px",
-                  background: "#151515", border: "2px solid rgba(255,255,255,0.1)",
-                  borderRadius: 16, color: "#FFFFFF", fontSize: 22, fontWeight: 700,
-                  textAlign: "center", outline: "none", fontFamily: "'Inter', sans-serif",
-                  marginBottom: 16, letterSpacing: "0.05em",
+                  display: "block", width: "100%", padding: acc ? "24px 28px" : "20px 24px",
+                  background: "#151515", border: "2px solid rgba(255,255,255,0.1)", borderRadius: 18,
+                  color: "#F8FAFC", fontSize: acc ? 28 : 22, fontWeight: 700, textAlign: "center",
+                  outline: "none", fontFamily: "'Inter', sans-serif", marginBottom: 16,
+                  letterSpacing: "0.04em", boxSizing: "border-box",
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#C1121F"; }}
+                onFocus={(e) => { e.target.style.borderColor = "#D72638"; }}
                 onBlur={(e) => { e.target.style.borderColor = "rgba(255,255,255,0.1)"; }}
               />
-              {error && <p style={{ color: "#C1121F", fontSize: 13, marginBottom: 16 }}>{error}</p>}
-              <button
-                onClick={handleIdLookup}
-                disabled={!idInput.trim()}
-                style={{
-                  width: "100%", padding: "18px", borderRadius: 16, border: "none",
-                  background: idInput.trim() ? "#C1121F" : "#2A2A2A",
-                  color: idInput.trim() ? "#FFFFFF" : "#404040",
-                  fontSize: 17, fontWeight: 800, cursor: idInput.trim() ? "pointer" : "not-allowed",
-                  fontFamily: "'Inter', sans-serif", transition: "all 0.15s",
-                  boxShadow: idInput.trim() ? "0 4px 20px rgba(193,18,31,0.4)" : "none",
-                }}
-              >
-                Find My Record
-              </button>
+              {error && <p style={{ color: "#D72638", fontSize: acc ? 15 : 13, marginBottom: 16 }}>{error}</p>}
+              <KioskBtn variant="red" large onClick={handleIdLookup} disabled={!idInput.trim()} accessible={acc}>
+                {L.findRecord}
+              </KioskBtn>
             </div>
           )}
 
-          {/* SEARCH ENTRY */}
+          {/* ── SEARCH ───────────────────────────────────────────────────────── */}
           {step === "search-entry" && (
             <div>
-              <button onClick={reset} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", color: "#A0A0A0", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, marginBottom: 32 }}>
-                ← Back
-              </button>
-              <p style={{ fontSize: 28, fontWeight: 800, color: "#FFFFFF", marginBottom: 8, textAlign: "center" }}>Search Your Name</p>
-              <p style={{ fontSize: 14, color: "#606060", marginBottom: 24, textAlign: "center" }}>Type your first or last name to find your record</p>
-              <input
-                type="text" value={searchInput} onChange={(e) => handleSearch(e.target.value)}
-                placeholder="First or last name…"
-                autoFocus
+              <p style={{ ...textStyle(acc ? 36 : 28, 900, "#F8FAFC"), textAlign: "center" }}>{L.searchName}</p>
+              <p style={{ ...textStyle(acc ? 16 : 13, 400, "#475569"), marginTop: 8, marginBottom: acc ? 32 : 24, textAlign: "center" }}>{L.searchNameSub}</p>
+              <input ref={searchRef} type="text" value={searchInput}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder={L.searchPlaceholder} autoFocus
                 style={{
-                  display: "block", width: "100%", padding: "18px 24px",
-                  background: "#151515", border: "2px solid rgba(255,255,255,0.1)",
-                  borderRadius: 16, color: "#FFFFFF", fontSize: 20, fontWeight: 600,
+                  display: "block", width: "100%", padding: acc ? "22px 26px" : "18px 22px",
+                  background: "#151515", border: "2px solid rgba(255,255,255,0.1)", borderRadius: 18,
+                  color: "#F8FAFC", fontSize: acc ? 26 : 20, fontWeight: 600,
                   outline: "none", fontFamily: "'Inter', sans-serif", marginBottom: 16,
+                  boxSizing: "border-box",
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#C1121F"; }}
+                onFocus={(e) => { e.target.style.borderColor = "#D72638"; }}
                 onBlur={(e) => { e.target.style.borderColor = "rgba(255,255,255,0.1)"; }}
               />
-              {searchResults.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {searchResults.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => { setFoundStudent(s); setStep("confirm"); }}
-                      style={{
-                        padding: "16px 20px", borderRadius: 14,
-                        background: "#151515", border: "1.5px solid rgba(255,255,255,0.08)",
-                        cursor: "pointer", display: "flex", alignItems: "center", gap: 16,
-                        fontFamily: "'Inter', sans-serif", transition: "all 0.1s",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#C1121F"; e.currentTarget.style.background = "#1B1B1B"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "#151515"; }}
-                    >
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(193,18,31,0.12)", border: "1.5px solid rgba(193,18,31,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: "#C1121F" }}>
-                          {s.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-                        </span>
-                      </div>
-                      <div style={{ textAlign: "left" }}>
-                        <p style={{ fontSize: 16, fontWeight: 700, color: "#FFFFFF" }}>{s.full_name}</p>
-                        <p style={{ fontSize: 12, color: "#606060" }}>{s.student_number ?? s.email}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {searchInput.length > 1 && searchResults.length === 0 && (
-                <p style={{ textAlign: "center", color: "#606060", fontSize: 14, marginTop: 16 }}>No students found. Try a different spelling or use Student ID.</p>
-              )}
+              {error && <p style={{ color: "#D72638", fontSize: acc ? 15 : 13, marginBottom: 12 }}>{error}</p>}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {searchInput.trim() && searchResults.length === 0 && (
+                  <p style={{ textAlign: "center", color: "#475569", fontSize: acc ? 15 : 13, padding: "20px 0" }}>{L.notFound}</p>
+                )}
+                {searchResults.map((s) => (
+                  <button key={s.id} onClick={() => handleSelectStudent(s)} style={{
+                    display: "flex", alignItems: "center", gap: 16, padding: acc ? "18px 22px" : "14px 18px",
+                    borderRadius: 14, background: "#151515", border: "1.5px solid rgba(255,255,255,0.09)",
+                    cursor: "pointer", transition: "all 0.12s", fontFamily: "'Inter', sans-serif",
+                  }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D72638"; e.currentTarget.style.background = "#1C1C1C"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; e.currentTarget.style.background = "#151515"; }}>
+                    <div style={{ width: acc ? 50 : 40, height: acc ? 50 : 40, borderRadius: 11, background: "rgba(215,38,56,0.1)", border: "1px solid rgba(215,38,56,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: acc ? 16 : 13, fontWeight: 900, color: "#D72638" }}>{s.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</span>
+                    </div>
+                    <div style={{ textAlign: "left" }}>
+                      <p style={{ fontSize: acc ? 20 : 16, fontWeight: 700, color: "#F8FAFC" }}>{s.full_name}</p>
+                      <p style={{ fontSize: acc ? 13 : 11, color: "#475569", marginTop: 2 }}>{s.student_number} · {s.program}</p>
+                    </div>
+                    <div style={{ marginLeft: "auto" }}>
+                      <span style={{ fontSize: acc ? 14 : 11, color: "#475569" }}>→</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* QR PLACEHOLDER */}
-          {step === "select-method" && method === "qr" && (
+          {/* ── CONFIRM IDENTITY ─────────────────────────────────────────────── */}
+          {step === "confirm" && found && (
             <div style={{ textAlign: "center" }}>
-              <button onClick={reset} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", color: "#A0A0A0", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, marginBottom: 40 }}>
-                ← Back
-              </button>
-              <div style={{ width: 200, height: 200, borderRadius: 24, border: "2px solid rgba(255,255,255,0.1)", margin: "0 auto 24px", display: "flex", alignItems: "center", justifyContent: "center", background: "#151515" }}>
-                <span style={{ fontSize: 60 }}>📷</span>
+              <p style={textStyle(acc ? 36 : 28, 900, "#F8FAFC")}>{L.isThisYou}</p>
+              <div style={{ background: "#151515", borderRadius: 20, border: "1.5px solid rgba(255,255,255,0.09)", padding: acc ? "36px" : "28px", margin: `${acc ? 32 : 24}px auto`, maxWidth: 400 }}>
+                <div style={{ width: acc ? 80 : 64, height: acc ? 80 : 64, borderRadius: 18, background: "rgba(215,38,56,0.1)", border: "2px solid rgba(215,38,56,0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <span style={{ fontSize: acc ? 26 : 20, fontWeight: 900, color: "#D72638" }}>{found.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</span>
+                </div>
+                <p style={textStyle(acc ? 26 : 22, 900, "#F8FAFC")}>{found.full_name}</p>
+                <p style={{ ...textStyle(acc ? 15 : 12, 500, "#475569"), marginTop: 8 }}>{found.student_number}</p>
+                <p style={{ ...textStyle(acc ? 14 : 11, 400, "#475569"), marginTop: 4 }}>{found.program} · {found.work_location}</p>
+                {alreadyCheckedIn && flow === "checkin" && (
+                  <div style={{ marginTop: 14, padding: "8px 14px", borderRadius: 8, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                    <p style={{ fontSize: acc ? 14 : 11, fontWeight: 700, color: "#22C55E" }}>✓ {L.alreadyIn}</p>
+                  </div>
+                )}
               </div>
-              <p style={{ fontSize: 24, fontWeight: 800, color: "#FFFFFF", marginBottom: 8 }}>Scan Your QR Pass</p>
-              <p style={{ fontSize: 14, color: "#606060", maxWidth: 340, margin: "0 auto 24px" }}>
-                Open your TRIO digital student pass and hold the QR code up to the camera.
-              </p>
-              <p style={{ fontSize: 12, color: "#404040" }}>Camera access required. Contact TRIO staff if you need assistance.</p>
-              <button onClick={reset} style={{ marginTop: 32, padding: "12px 28px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#A0A0A0", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                Try Another Method
-              </button>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                <KioskBtn variant="ghost" onClick={reset} accessible={acc}>{L.no}</KioskBtn>
+                <KioskBtn variant="red" onClick={() => flow === "checkin" && !alreadyCheckedIn ? setStep("reason") : flow === "checkout" ? handleSubmitCheckOut() : reset()} accessible={acc}>
+                  {L.yes}
+                </KioskBtn>
+              </div>
             </div>
           )}
 
-          {/* CONFIRM */}
-          {step === "confirm" && foundStudent && (
+          {/* ── REASON ───────────────────────────────────────────────────────── */}
+          {step === "reason" && (
             <div>
-              <button onClick={() => setStep("home")} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", color: "#A0A0A0", cursor: "pointer", fontFamily: "'Inter', sans-serif", fontSize: 13, marginBottom: 28 }}>
-                ← Not you?
-              </button>
-              <div style={{ textAlign: "center", marginBottom: 36 }}>
-                <div style={{ width: 72, height: 72, borderRadius: 20, background: "rgba(193,18,31,0.12)", border: "2px solid rgba(193,18,31,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                  <span style={{ fontSize: 22, fontWeight: 900, color: "#C1121F" }}>
-                    {foundStudent.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-                  </span>
-                </div>
-                <p style={{ fontSize: 28, fontWeight: 900, color: "#FFFFFF", marginBottom: 4 }}>{foundStudent.full_name}</p>
-                <p style={{ fontSize: 13, color: "#606060" }}>{foundStudent.student_number ?? foundStudent.email}</p>
-              </div>
-              <p style={{ fontSize: 16, fontWeight: 700, color: "#FFFFFF", marginBottom: 16, textAlign: "center" }}>
-                Why are you visiting TRIO today?
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 24 }}>
-                {REASONS.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setReason(r)}
-                    style={{
-                      padding: "14px 12px", borderRadius: 12, border: "1.5px solid",
-                      borderColor: reason === r ? "#C1121F" : "rgba(255,255,255,0.08)",
-                      background: reason === r ? "rgba(193,18,31,0.12)" : "#151515",
-                      color: reason === r ? "#FFFFFF" : "#A0A0A0",
-                      fontSize: 12, fontWeight: reason === r ? 700 : 400,
-                      cursor: "pointer", fontFamily: "'Inter', sans-serif",
-                      transition: "all 0.1s", textAlign: "center",
-                    }}
-                  >
+              <p style={{ ...textStyle(acc ? 32 : 26, 900, "#F8FAFC"), textAlign: "center", marginBottom: acc ? 32 : 24 }}>{L.selectReason}</p>
+              {error && <p style={{ color: "#D72638", fontSize: acc ? 15 : 13, marginBottom: 12, textAlign: "center" }}>{error}</p>}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+                {reasons.map((r) => (
+                  <button key={r} onClick={() => setReason(r)} style={{
+                    padding: acc ? "22px 18px" : "16px 14px", borderRadius: 14, border: `1.5px solid ${reason === r ? "#D72638" : "rgba(255,255,255,0.09)"}`,
+                    background: reason === r ? "rgba(215,38,56,0.12)" : "#151515",
+                    color: reason === r ? "#F8FAFC" : "#94A3B8",
+                    fontSize: acc ? 18 : 14, fontWeight: reason === r ? 700 : 400,
+                    cursor: "pointer", fontFamily: "'Inter', sans-serif", textAlign: "left",
+                    transition: "all 0.12s",
+                  }}>
+                    {reason === r && <span style={{ color: "#D72638", marginRight: 8 }}>✓</span>}
                     {r}
                   </button>
                 ))}
               </div>
-              {error && <p style={{ color: "#C1121F", fontSize: 13, marginBottom: 12, textAlign: "center" }}>{error}</p>}
-              <button
-                onClick={handleCheckIn}
-                style={{
-                  width: "100%", padding: "18px", borderRadius: 16, border: "none",
-                  background: reason ? "#C1121F" : "#2A2A2A",
-                  color: reason ? "#FFFFFF" : "#404040",
-                  fontSize: 17, fontWeight: 800, cursor: reason ? "pointer" : "not-allowed",
-                  fontFamily: "'Inter', sans-serif", transition: "all 0.15s",
-                  boxShadow: reason ? "0 4px 20px rgba(193,18,31,0.4)" : "none",
-                }}
-              >
-                Complete Check-In
-              </button>
+              <KioskBtn variant="red" large onClick={handleSubmitCheckIn} disabled={!reason} accessible={acc}>
+                {L.submit}
+              </KioskBtn>
             </div>
           )}
 
-          {/* SUCCESS */}
-          {step === "success" && foundStudent && (
-            <div style={{ textAlign: "center", animation: "scaleIn 0.3s ease both" }}>
-              <div style={{ width: 100, height: 100, borderRadius: "50%", background: "rgba(34,197,94,0.12)", border: "2px solid #22C55E", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", boxShadow: "0 0 40px rgba(34,197,94,0.2)" }}>
-                <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#22C55E" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          {/* ── SUBMITTING ───────────────────────────────────────────────────── */}
+          {step === "submitting" && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 60, height: 60, border: "4px solid rgba(255,255,255,0.06)", borderTopColor: "#D72638", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 24px" }} />
+              <p style={textStyle(acc ? 24 : 20, 700, "#94A3B8")}>Processing…</p>
+            </div>
+          )}
+
+          {/* ── SUCCESS ──────────────────────────────────────────────────────── */}
+          {step === "success" && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: acc ? 96 : 80, height: acc ? 96 : 80, borderRadius: "50%", background: flow === "checkin" ? "rgba(34,197,94,0.1)" : "rgba(59,130,246,0.1)", border: `2px solid ${flow === "checkin" ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)"}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px" }}>
+                <svg width={acc ? 44 : 36} height={acc ? 44 : 36} fill="none" viewBox="0 0 24 24" stroke={flow === "checkin" ? "#22C55E" : "#3B82F6"} strokeWidth={2.5}>
+                  {flow === "checkin"
+                    ? <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    : <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                  }
                 </svg>
               </div>
-              <p style={{ fontSize: 32, fontWeight: 900, color: "#FFFFFF", marginBottom: 8 }}>Checked In!</p>
-              <p style={{ fontSize: 18, color: "#22C55E", fontWeight: 700, marginBottom: 4 }}>{foundStudent.full_name}</p>
-              <p style={{ fontSize: 14, color: "#A0A0A0", marginBottom: 8 }}>{reason}</p>
-              <p style={{ fontSize: 14, color: "#D4AF37" }}>
-                {new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
-              </p>
-              <p style={{ fontSize: 12, color: "#404040", marginTop: 32 }}>Returning to home screen…</p>
+              <p style={textStyle(acc ? 40 : 32, 900, "#F8FAFC")}>{flow === "checkin" ? L.successIn : L.successOut}</p>
+              <p style={{ ...textStyle(acc ? 20 : 16, 500, "#22C55E"), marginTop: 8 }}>{found?.full_name}</p>
+              <p style={{ ...textStyle(acc ? 16 : 13, 400, "#475569"), marginTop: 12 }}>{flow === "checkin" ? L.successSub : L.successSubOut}</p>
+              <p style={{ ...textStyle(acc ? 13 : 11, 400, "#2D3748"), marginTop: 24 }}>Returning to home screen…</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={{ padding: "16px 40px", borderTop: "1px solid rgba(255,255,255,0.04)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-        <p style={{ fontSize: 11, color: "#303030" }}>TRIO Connect Kiosk · FERPA-compliant check-in</p>
-        <p style={{ fontSize: 11, color: "#303030" }}>
-          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-        </p>
+      {/* Bottom strip */}
+      <div style={{ position: "relative", zIndex: 1, padding: acc ? "18px 48px" : "12px 40px", borderTop: "1px solid rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ fontSize: acc ? 12 : 10, color: "#2D3748" }}>TRIO Connect Kiosk · Powered by Nova Systems</p>
+        <p style={{ fontSize: acc ? 12 : 10, color: "#2D3748" }}>Questions? Ask staff for assistance.</p>
       </div>
     </div>
   );

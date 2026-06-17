@@ -2,19 +2,13 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth-context";
 import LoginPage from "./pages/LoginPage";
 import Layout from "./components/Layout";
-import DashboardHome from "./pages/DashboardHome";
+import AttendancePage from "./pages/AttendancePage";
+import GrantReportingPage from "./pages/GrantReportingPage";
 import StudentsPage from "./pages/StudentsPage";
-import OperationsPage from "./pages/OperationsPage";
-import CheckInPage from "./pages/CheckInPage";
-import MeetingsPage from "./pages/MeetingsPage";
-import EventsPage from "./pages/EventsPage";
-import TasksPage from "./pages/TasksPage";
-import ResourcesPage from "./pages/ResourcesPage";
-import DocumentsPage from "./pages/DocumentsPage";
 import CommunicationsPage from "./pages/CommunicationsPage";
-import InsightsPage from "./pages/InsightsPage";
-import AdministrationPage from "./pages/AdministrationPage";
+import EventsPage from "./pages/EventsPage";
 import IDCenterPage from "./pages/IDCenterPage";
+import NovaIntelligencePage from "./pages/NovaIntelligencePage";
 import SettingsPage from "./pages/SettingsPage";
 import KioskPage from "./pages/KioskPage";
 
@@ -39,33 +33,38 @@ function AppRoutes() {
   return (
     <Layout portal={portal}>
       <Routes>
-        <Route path="/"                element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard"       element={<DashboardHome />} />
-        <Route path="/students"        element={<StudentsPage />} />
-        <Route path="/students/:id"    element={<StudentsPage />} />
+        {/* Primary landing */}
+        <Route path="/"                 element={<Navigate to="/attendance" replace />} />
+        <Route path="/attendance"       element={<AttendancePage />} />
 
-        {/* Operations hub */}
-        <Route path="/operations"      element={<OperationsPage />} />
-        <Route path="/checkin"         element={<CheckInPage />} />
-        <Route path="/meetings"        element={<MeetingsPage />} />
-        <Route path="/events"          element={<EventsPage />} />
-        <Route path="/tasks"           element={<TasksPage />} />
-        <Route path="/resources"       element={<ResourcesPage />} />
-        <Route path="/documents"       element={<DocumentsPage />} />
+        {/* Core modules */}
+        <Route path="/grant-reporting"  element={<GrantReportingPage />} />
+        <Route path="/students"         element={<StudentsPage />} />
+        <Route path="/students/:id"     element={<StudentsPage />} />
+        <Route path="/communications"   element={<CommunicationsPage />} />
+        <Route path="/events"           element={<EventsPage />} />
 
-        {/* Module pages */}
-        <Route path="/communications"  element={<CommunicationsPage />} />
-        <Route path="/insights"        element={<InsightsPage />} />
-        <Route path="/administration"  element={<AdministrationPage />} />
-        <Route path="/id-center"       element={<IDCenterPage />} />
-        <Route path="/settings"        element={<SettingsPage />} />
+        {/* Tools */}
+        <Route path="/digital-ids"      element={<IDCenterPage />} />
+        <Route path="/nova"             element={<NovaIntelligencePage />} />
+        <Route path="/settings"         element={<SettingsPage />} />
 
-        {/* Legacy redirects */}
-        <Route path="/messages"        element={<Navigate to="/communications" replace />} />
-        <Route path="/reports"         element={<Navigate to="/insights" replace />} />
-        <Route path="/ai-center"       element={<Navigate to="/insights" replace />} />
+        {/* Legacy redirects — keep old links working */}
+        <Route path="/dashboard"        element={<Navigate to="/attendance" replace />} />
+        <Route path="/checkin"          element={<Navigate to="/attendance" replace />} />
+        <Route path="/operations"       element={<Navigate to="/attendance" replace />} />
+        <Route path="/meetings"         element={<Navigate to="/attendance" replace />} />
+        <Route path="/tasks"            element={<Navigate to="/attendance" replace />} />
+        <Route path="/insights"         element={<Navigate to="/nova" replace />} />
+        <Route path="/reports"          element={<Navigate to="/grant-reporting" replace />} />
+        <Route path="/ai-center"        element={<Navigate to="/nova" replace />} />
+        <Route path="/id-center"        element={<Navigate to="/digital-ids" replace />} />
+        <Route path="/administration"   element={<Navigate to="/settings" replace />} />
+        <Route path="/resources"        element={<Navigate to="/attendance" replace />} />
+        <Route path="/documents"        element={<Navigate to="/students" replace />} />
+        <Route path="/messages"         element={<Navigate to="/communications" replace />} />
 
-        <Route path="*"                element={<Navigate to="/dashboard" replace />} />
+        <Route path="*"                 element={<Navigate to="/attendance" replace />} />
       </Routes>
     </Layout>
   );
