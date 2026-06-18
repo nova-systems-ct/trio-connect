@@ -186,6 +186,10 @@ export interface Activity {
   notes?: string;
   staff_id?: string;
   staff_name?: string;
+  // advisor being met (distinct from staff who processed the check-in)
+  advisor_met_id?: string;
+  advisor_met_name?: string;
+  follow_up_requested?: boolean;
   location?: string;
   meeting_id?: string;
   event_id?: string;

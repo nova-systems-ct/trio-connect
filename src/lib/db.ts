@@ -396,6 +396,21 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return DEMO_STATS;
 }
 
+// ── Student-specific activities ───────────────────────────────────────────────
+export async function getStudentActivities(studentId: string): Promise<Activity[]> {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase.from("activities").select("*").eq("student_id", studentId).order("check_in_time", { ascending: false });
+    return data || [];
+  }
+  return read<Activity>(LOCAL_KEYS.activities, []).filter((a) => a.student_id === studentId).sort((a, b) => b.check_in_time.localeCompare(a.check_in_time));
+}
+
+export async function getActiveCheckIns(): Promise<Activity[]> {
+  const today = new Date().toISOString().split("T")[0];
+  const acts = await getActivities({ start_date: today, end_date: today });
+  return acts.filter((a) => !a.check_out_time);
+}
+
 // ── Activity breakdown for reports ────────────────────────────────────────────
 export async function getActivityBreakdown(filters?: ReportFilters): Promise<Record<ActivityType, number>> {
   const acts = await getActivities(filters);
