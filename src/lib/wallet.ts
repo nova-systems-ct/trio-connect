@@ -176,10 +176,10 @@ export function generateQRMatrix(studentNumber: string): boolean[][] {
       const inner  = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;
       m[r + dr][c + dc] = border || inner;
     }
-    // Separator row/col
+    // Separator row/col — both axes must be in-bounds
     for (let i = 0; i < 8; i++) {
-      if (r + 7 < S) m[r + 7][c + i] = false;
-      if (c + 7 < S) m[r + i][c + 7] = false;
+      if (r + 7 < S && c + i < S) m[r + 7][c + i] = false;
+      if (c + 7 < S && r + i < S) m[r + i][c + 7] = false;
     }
   }
 
